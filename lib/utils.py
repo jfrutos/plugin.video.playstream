@@ -13,6 +13,13 @@ from six.moves import urllib_parse
 
 import six
 
+try:
+    translatePath = xbmcvfs.translatePath
+except:
+    translatePath = xbmc.translatePath
+
+ADDON = xbmcaddon.Addon()
+data_path = translatePath(ADDON.getAddonInfo('Profile'))
 
 class Item(object):
     defaults = {}
@@ -79,5 +86,110 @@ class Item(object):
             setattr(newitem, k, v)
         return newitem
 
+locker = Lock()
+def load_json_file(path):
+    with locker:
+        data = open(path, 'rb').read()
 
+    data = load_json(six.ensure_str(data))
+    return data
+
+
+def dump_json_file(data, path):
+    if not os.path.exists(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path))
+    data = six.ensure_binary(dump_json(data))
+    with locker:
+        open(path, 'wb').write(data)
+
+def load_json(*args, **kwargs):
+    if "object_hook" not in kwargs:
+        kwargs["object_hook"] = set_encoding
+
+    try:
+        value = json.loads(*args, **kwargs)
+    except Exception as e:
+        #logger(e, "error")
+        value = {}
+
+    return value
+
+def dump_json(*args, **kwargs):
+    if not kwargs:
+        kwargs = {
+            'indent': 4,
+            'skipkeys': True,
+            'sort_keys': True,
+            'ensure_ascii': False
+        }
+
+    try:
+        value = json.dumps(*args, **kwargs)
+    except Exception as e:
+        #logger(e, "error")
+        value = ''
+
+    return value
+
+def set_encoding(dct):
+    if isinstance(dct, dict):
+        return dict((set_encoding(key), set_encoding(value)) for key, value in dct.items())
+    elif isinstance(dct, list):
+        return [set_encoding(element) for element in dct]
+    elif isinstance(dct, six.string_types):
+        return six.ensure_str(dct)
+    else:
+        return dct
+
+def get_setting(name, default=None):
+    value = xbmcaddon.Addon().getSetting(name)
+
+    if not value:
+        return default
+    elif value == 'true':
+        return True
+    elif value == 'false':
+        return False
+    else:
+        try:
+            value = value
+        except ValueError:
+            try:
+                value = long(value)
+            except ValueError:
+                try:
+                    is_list = eval(value)
+                    if isinstance(is_list, list):
+                        value = is_list
+                    else:
+                        raise()
+                except:
+                    try:
+                        aux = load_json(value)
+                        if aux: value = aux
+                    except ValueError:
+                        pass
+
+        return value
+
+
+def set_setting(name, value):
+    try:
+        if isinstance(value, bool):
+            if value:
+                value = "true"
+            else:
+                value = "false"
+        elif isinstance(value, (int, long, list)):
+            value = str(value)
+        elif not isinstance(value, str):
+            value = dump_json(value)
+
+        xbmcaddon.Addon().setSetting(name, value)
+
+    except Exception as ex:
+        logger("Error al convertir '%s' no se guarda el valor \n%s" % (name, ex), 'error')
+        return None
+
+    return value
 
