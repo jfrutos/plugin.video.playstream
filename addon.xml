@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="plugin.video.example"
+<addon id="plugin.video.playstream"
 version="2.4.0"
-name="Example Kodi Video Plugin"
-provider-name="Roman_V_M">
+name="Kodi Video AceStream Proxy"
+provider-name="frutomix">
 <requires>
   <import addon="xbmc.python" version="3.0.0"/>
 </requires>
@@ -10,8 +10,8 @@ provider-name="Roman_V_M">
   <provides>video</provides>
 </extension>
 <extension point="xbmc.addon.metadata">
-  <summary lang="en">Example Kodi Video Plugin</summary>
-  <description lang="en_GB">An example video plugin for Kodi mediacenter.</description>
+  <summary lang="en">Kodi Video Acestream proxy</summary>
+  <description lang="en_GB">video plugin for Kodi mediacenter to play acestream id through acestream proxy.</description>
   <disclaimer lang="en_GB">Free sample videos are provided by www.vidsplay.com.</disclaimer>
   <assets>
     <icon>icon.png</icon>

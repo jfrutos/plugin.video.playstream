@@ -9,6 +9,7 @@ import sys
 from urllib.parse import urlencode, parse_qsl
 import xbmcgui
 import xbmcplugin
+from lib.utils import *
 
 # Get the plugin url in plugin:// notation.
 _URL = sys.argv[0]
@@ -21,7 +22,7 @@ _HANDLE = int(sys.argv[1])
 # from some web-site or online service.
 VIDEOS = {'Animals': [{'name': 'Crab',
                        'thumb': 'http://www.vidsplay.com/wp-content/uploads/2017/04/crab-screenshot.jpg',
-                       'video': 'http://www.vidsplay.com/wp-content/uploads/2017/04/crab.mp4',
+                       'video': 'http://192.168.0.9:8000/pid/12ea555d431dbe51fc8e4ca745aec09fe22a4865/stream.mp4',
                        'genre': 'Animals'},
                       {'name': 'Alligator',
                        'thumb': 'http://www.vidsplay.com/wp-content/uploads/2017/04/alligator-screenshot.jpg',
@@ -116,6 +117,7 @@ def list_categories():
     # Set plugin content. It allows Kodi to select appropriate views
     # for this type of content.
     xbmcplugin.setContent(_HANDLE, 'videos')
+    list_item = xbmcgui.ListItem(label='Play a Acestream ID')
     # Get video categories
     categories = get_categories()
     # Iterate through categories
@@ -202,11 +204,22 @@ def play_video(path):
     :param path: Fully-qualified video URL
     :type path: str
     """
+    
     # Create a playable item with a path to play.
     play_item = xbmcgui.ListItem(path=path)
     # Pass the item to the Kodi player.
     xbmcplugin.setResolvedUrl(_HANDLE, True, listitem=play_item)
 
+def mainmenu():
+    itemlist = list()
+
+    itemlist.append(Item(
+        label= 'Play Acestream ID',
+        action='play'
+    ))
+
+
+    return itemlist
 
 def router(paramstring):
     """
@@ -237,8 +250,70 @@ def router(paramstring):
         # display the list of video categories
         list_categories()
 
+def run(item):
+    itemlist = list()
+
+
+    if item.action == "mainmenu":
+        itemlist = mainmenu()
+
+    elif item.action == "play":
+        id = url = infohash = None
+
+        #if item.id:
+            #id =item.id
+        #elif item.url:
+         #   url=item.url
+        #elif item.infohash:
+         #   infohash=item.infohash
+        #else:
+        input = xbmcgui.Dialog().input('Insert Acestream ID', "")
+        if re.findall('^(http|magnet)', input, re.I):
+             url = input
+        else:
+             id = input
+
+        if id:
+            url= 'http://192.168.0.9:8000/pid/'+id +'/stream.mp4'
+            play_video(url)
+
+        #xbmc.executebuiltin('Container.Refresh')
+
+
+    if itemlist:
+        for item in itemlist:
+            listitem = xbmcgui.ListItem(item.label or item.title)
+            listitem.setInfo('video', {'title': item.label or item.title, 'mediatype': 'video'})
+            #listitem.setArt(item.getart())
+            listitem.setInfo('video', {'plot': item.plot})
+
+
+            listitem.setProperty('IsPlayable', 'true')
+            isFolder = False
+
+            xbmcplugin.addDirectoryItem(
+                handle=int(sys.argv[1]),
+                url='%s?%s' % (sys.argv[0], item.tourl()),
+                listitem=listitem,
+                isFolder= False,
+                totalItems=len(itemlist)
+            )
+        
+        xbmcplugin.addSortMethod(handle=int(sys.argv[1]), sortMethod=xbmcplugin.SORT_METHOD_NONE)
+        xbmcplugin.endOfDirectory(handle=int(sys.argv[1]), succeeded=True)
+
+
 
 if __name__ == '__main__':
     # Call the router function and pass the plugin call parameters to it.
     # We use string slicing to trim the leading '?' from the plugin call paramstring
-    router(sys.argv[2][1:])
+    #router(sys.argv[2][1:])
+    if sys.argv[2]:
+        try:
+            item = Item().fromurl(sys.argv[2])
+        except:
+            exit(0)
+    else:
+        item = Item(action='mainmenu')
+    #router(sys.argv[2])
+    run(item)
