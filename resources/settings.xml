@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <settings>
     <category label="PlayStream">
-        <setting id="ip_addr" type="text" label="30024" default="127.0.0.1" />
-        <setting id="ace_port" type="text" label="30025" default="8000" />
+        <setting id="ip_addr" type="text" label="Host IP" default="127.0.0.1" />
+        <setting id="ace_port" type="text" label="Port" default="8000" />
 
     </category>
 </settings>

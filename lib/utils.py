@@ -12,6 +12,11 @@ from threading import Thread, Lock
 from six.moves import urllib_parse
 
 import six
+if six.PY3:
+    long = int
+    LOGINFO = xbmc.LOGINFO
+else:
+    LOGINFO = xbmc.LOGNOTICE
 
 try:
     translatePath = xbmcvfs.translatePath
@@ -85,6 +90,39 @@ class Item(object):
                 continue'''
             setattr(newitem, k, v)
         return newitem
+
+
+def logger(message, level=None):
+    def format_message(data=""):
+        try:
+            value = str(data)
+        except Exception:
+            value = repr(data)
+
+        if isinstance(value, six.binary_type):
+            value = six.text_type(value, 'utf8', 'replace')
+
+        """if isinstance(value, unicode):
+            return [value]
+        else:
+            return value"""
+        return value
+
+    texto = '[%s] %s' % (xbmcaddon.Addon().getAddonInfo('id'), format_message(message))
+
+    try:
+        if level == 'info':
+            xbmc.log(texto, LOGINFO)
+        elif level == 'error':
+            xbmc.log("######## ERROR #########", xbmc.LOGERROR)
+            xbmc.log(texto, xbmc.LOGERROR)
+        else:
+            xbmc.log("######## DEBUG #########", LOGINFO)
+            xbmc.log(texto, LOGINFO)
+    except:
+        # xbmc.log(six.ensure_str(texto, encoding='latin1', errors='strict'), LOGINFO)
+        xbmc.log(str([texto]), LOGINFO)
+
 
 locker = Lock()
 def load_json_file(path):

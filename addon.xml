@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="plugin.video.playstream"
+<addon id="script.module.horus"
 version="2.4.0"
 name="Kodi Video AceStream Proxy"
 provider-name="frutomix">

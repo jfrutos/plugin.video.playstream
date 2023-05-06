@@ -41,6 +41,7 @@ def play_video(path):
     
     # Create a playable item with a path to play.
     play_item = xbmcgui.ListItem(path=path)
+    play_item.setProperty('IsPlayable', 'true')
     # Pass the item to the Kodi player.
     xbmcplugin.setResolvedUrl(_HANDLE, True, listitem=play_item)
 
@@ -110,7 +111,9 @@ def run(item):
             #id =item.id
         #elif item.url:
          #   url=item.url
-        if item.infohash:
+        if item.id:
+            id=item.id
+        elif item.infohash:
             infohash = item.infohash
         else:
             input = xbmcgui.Dialog().input('Insert Acestream ID', "")
@@ -126,12 +129,14 @@ def run(item):
             url= 'http://' + host + ':' + port + '/pid/'+ infohash +'/stream.mp4'
             play_video(url)
         elif id:
+            logger("Play Id %s" %id)
+
             url= 'http://' + host + ':' + port + '/pid/'+ id + '/stream.mp4'
             play_video(url)
             add_historial({'infohash': id,
-                           'title': id,
+                           'title': item.title,
                            'icon':  '',
-                           'plot': ''})
+                           'plot': item.plot})
 
 
         #xbmc.executebuiltin('Container.Refresh')
@@ -167,11 +172,31 @@ if __name__ == '__main__':
     # Call the router function and pass the plugin call parameters to it.
     # We use string slicing to trim the leading '?' from the plugin call paramstring
     #router(sys.argv[2][1:])
+    logger("argv %s %s" %(sys.argv[1], sys.argv[2]))
     if sys.argv[2]:
         try:
             item = Item().fromurl(sys.argv[2])
+            item.title=item.id
         except:
-            exit(0)
+            failed = True
+            argumentos = dict()
+            for c in sys.argv[2][1:].split('&'):
+                k, v = c.split('=')
+                argumentos[k] = urllib_parse.unquote_plus(six.ensure_str(v))
+
+            logger("Llamada externa: %s" %argumentos)
+            action = argumentos.get('action', '').lower()
+
+            if action == "play" and argumentos.get('id'):
+                item=Item(id=argumentos.get('id'), 
+                          action='play',
+                          title=argumentos.get('title'),
+                          iconimage=argumentos.get('iconimage'),
+                          plot=argumentos.get('plot'))
+
+                
+      #  logger("Call run item")
+      #  run(item)
     else:
         item = Item(action='mainmenu')
     #router(sys.argv[2])
