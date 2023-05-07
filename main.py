@@ -17,6 +17,69 @@ _URL = sys.argv[0]
 _HANDLE = int(sys.argv[1])
 
 
+class MyPlayer(xbmc.Player):
+    _instance = None
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(MyPlayer, cls).__new__(cls, *args, **kwargs)
+        return cls._instance
+
+    def __init__(self):
+        logger("MyPlayer init")
+        self.total_Time = 0
+        self.monitor = xbmc.Monitor()
+        xbmc.Player().stop()
+        while xbmc.Player().isPlaying() and not self.monitor.abortRequested():
+            self.monitor.waitForAbort(1)
+
+
+    def playStream(self, stream, title='', iconimage='', plot='', init_time=0.0):
+        self.AVStarted = False
+        self.is_active = True
+        self.init_time = float(init_time)
+
+        status = 'failed'
+
+        listitem = xbmcgui.ListItem()
+        title = 'aaa' #title or stream.filename or stream.id
+        info = {'title': title}
+        #if plot:
+        #    info['plot'] = plot
+        #listitem.setInfo('video', info )
+        #art = {'icon': iconimage if iconimage else os.path.join(runtime_path, 'resources', 'media', 'icono_aces_horus.png')}
+        #listitem.setArt(art)
+
+        self.play(stream, listitem)
+        xbmcplugin.endOfDirectory(handle=int(sys.argv[1]), succeeded=False, updateListing = True, cacheToDisc = False)
+        xbmc.executebuiltin('Dialog.Close(all,true)')
+
+
+    def onAVStarted(self):
+        logger("PLAYBACK AVSTARTED")
+        self.AVStarted = True
+        self.total_Time = self.getTotalTime()
+        if self.init_time:
+            self.seekTime(self.init_time)
+
+    def onPlayBackEnded(self):
+        logger("PLAYBACK ENDED") # Corte de red o fin del video
+        self.is_active = False
+
+    def onPlayBackStopped(self):
+        logger("PLAYBACK STOPPED") # Parado por el usuario o no iniciado por http 429
+        self.is_active = False
+
+    def onPlayBackError(self):
+        logger("PLAYBACK ERROR")
+        self.is_active = False
+
+    def onPlayBackStarted(self):
+        logger("PLAYBACK STARTED")
+
+    def kill(self):
+        logger("Play Kill")
+        self.is_active = False
+
 
 def get_url(**kwargs):
     """
@@ -40,10 +103,13 @@ def play_video(path):
     """
     
     # Create a playable item with a path to play.
-    play_item = xbmcgui.ListItem(path=path)
-    play_item.setProperty('IsPlayable', 'true')
+    #play_item = xbmcgui.ListItem(path=path)
+    #play_item.setProperty('IsPlayable', 'true')
     # Pass the item to the Kodi player.
-    xbmcplugin.setResolvedUrl(_HANDLE, True, listitem=play_item)
+    #xbmcplugin.setResolvedUrl(_HANDLE, True, listitem=play_item)
+    logger("Play_video")
+    player = MyPlayer()
+    player.playStream(path, '', '', '')
 
 def mainmenu():
     itemlist = list()
@@ -91,6 +157,7 @@ def add_historial(contenido):
 
 
 def run(item):
+
     itemlist = list()
     itemAction = item.action
 
@@ -121,16 +188,16 @@ def run(item):
                 url = input
             else:
                 id = input
+                item.title=id
 
         host = get_setting("ip_addr")
         port = get_setting("ace_port")
 
         if infohash:
             url= 'http://' + host + ':' + port + '/pid/'+ infohash +'/stream.mp4'
+            logger("Play URL %s" %url)
             play_video(url)
         elif id:
-            logger("Play Id %s" %id)
-
             url= 'http://' + host + ':' + port + '/pid/'+ id + '/stream.mp4'
             play_video(url)
             add_historial({'infohash': id,
@@ -139,7 +206,7 @@ def run(item):
                            'plot': item.plot})
 
 
-        #xbmc.executebuiltin('Container.Refresh')
+        xbmc.executebuiltin('Container.Refresh')
 
 
     if itemlist:
@@ -147,22 +214,29 @@ def run(item):
             listitem = xbmcgui.ListItem(item.label or item.title)
             listitem.setInfo('video', {'title': item.label or item.title, 'mediatype': 'video'})
             #listitem.setArt(item.getart())
-            listitem.setInfo('video', {'plot': item.plot})
+            if item.plot:
+                listitem.setInfo('video', {'plot': item.plot})
 
-            if item.action == "play":
+            if item.isPlayable:
                 listitem.setProperty('IsPlayable', 'true')
                 isFolder = False
+
+            elif isinstance(item.isFolder, bool):
+                isFolder = item.isFolder
+
+            elif not item.action:
+                isFolder = False
+
             else:
                 isFolder = True
-                
+
             xbmcplugin.addDirectoryItem(
                 handle=int(sys.argv[1]),
                 url='%s?%s' % (sys.argv[0], item.tourl()),
                 listitem=listitem,
                 isFolder= isFolder,
                 totalItems=len(itemlist)
-            )
-        
+            )        
         xbmcplugin.addSortMethod(handle=int(sys.argv[1]), sortMethod=xbmcplugin.SORT_METHOD_NONE)
         xbmcplugin.endOfDirectory(handle=int(sys.argv[1]), succeeded=True)
 
@@ -173,12 +247,12 @@ if __name__ == '__main__':
     # We use string slicing to trim the leading '?' from the plugin call paramstring
     #router(sys.argv[2][1:])
     logger("argv %s %s" %(sys.argv[1], sys.argv[2]))
+    
     if sys.argv[2]:
         try:
             item = Item().fromurl(sys.argv[2])
             item.title=item.id
         except:
-            failed = True
             argumentos = dict()
             for c in sys.argv[2][1:].split('&'):
                 k, v = c.split('=')

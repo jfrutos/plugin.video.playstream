@@ -8,8 +8,9 @@ provider-name="frutomix">
   <import addon="script.module.six" />
 </requires>
 <extension point="xbmc.python.pluginsource" library="main.py">
-  <provides>video</provides>
+  <provides>executable</provides>
 </extension>
+
 <extension point="xbmc.addon.metadata">
   <summary lang="en">Kodi Video Acestream proxy</summary>
   <description lang="en_GB">video plugin for Kodi mediacenter to play acestream id through acestream proxy.</description>
